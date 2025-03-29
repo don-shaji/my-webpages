@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Logic Game - Human vs Computer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #1f2937;
+        }
+        #gameContainer {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(8px);
+            max-width: 1000px;
+            width: 95%;
+            margin: 2rem auto;
+            transition: transform 0.3s ease;
+        }
+        #gameTitle {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 2px;
+            margin: 20px auto;
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        table:hover {
+            transform: scale(1.02) translateY(-5px);
+        }
+        td {
+            width: 42px;
+            height: 42px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        td::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(0);
+            transition: transform 0.3s ease;
+            border-radius: inherit;
+        }
+        td:hover::before {
+            transform: scale(1);
+        }
+        td:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 2;
+        }
+        #scoreboard {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin: 2rem 0;
+        }
+        .player-score {
+            padding: 1.5rem;
+            border-radius: 16px;
+            width: 220px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        #humanScore {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        #computerScore {
+            background: linear-gradient(135deg, #f87171, #ef4444);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+        .player-score:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        .score-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0.5rem 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .clicks-left {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+        #turnIndicator {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 1.5rem 0;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            transition: all 0.4s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #turnIndicator.human-turn {
+            background: linear-gradient(135deg, #93c5fd, #60a5fa);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        #turnIndicator.computer-turn {
+            background: linear-gradient(135deg, #fca5a5, #f87171);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+        #restartBtn {
+            display: none;
+            margin: 2rem auto;
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #34d399, #10b981);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        #restartBtn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        #gameOverOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.5s ease;
+        }
+        #gameOverMessage {
+            background: white;
+            padding: 3rem;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 90%;
+            width: 400px;
+        }
+        #gameOverMessage h2 {
+            margin: 0 0 1.5rem;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        #gameOverMessage.winner {
+            border: 6px solid #34d399;
+        }
+        #gameOverMessage.loser {
+            border: 6px solid #f87171;
+        }
+        #gameOverMessage.tie {
+            border: 6px solid #a855f7;
+        }
+        .highlight {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { 
+                transform: translateY(-100px) scale(0.8);
+                opacity: 0;
+            }
+            to { 
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); filter: brightness(1.1); }
+            100% { transform: scale(1); }
+        }
+        @keyframes celebrate {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(-5deg); }
+            75% { transform: scale(1.1) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        .celebrating {
+            animation: celebrate 0.5s ease;
+        }
+        .player-label {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .score-container {
+            position: relative;
+            padding: 0.5rem;
+        }
+        .score-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        .score-container:hover::before {
+            transform: scaleX(1);
+        }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <h1 id="gameTitle">Color Logic Game</h1>
+    <div id="scoreboard">
+        <div class="player-score" id="humanScore">
+            <div class="player-label">Human Player</div>
+            <div class="score-container">
+                <div class="score-number"><span id="humanPoints">0</span></div>
+                <div class="clicks-left">Clicks Left: <span id="humanClicks">25</span></div>
+            </div>
+        </div>
+        <div class="player-score" id="computerScore">
+            <div class="player-label">Computer</div>
+            <div class="score-container">
+                <div class="score-number"><span id="computerPoints">0</span></div>
+                <div class="clicks-left">Clicks Left: <span id="computerClicks">25</span></div>
+            </div>
+        </div>
+    </div>
+    <div id="turnIndicator" class="human-turn">Your Turn</div>
+    <table id="colorTable"></table>
+    <button id="restartBtn" onclick="restartGame()">Play Again</button>
+</div>
+
+<div id="gameOverOverlay">
+    <div id="gameOverMessage">
+        <h2 id="gameOverTitle"></h2>
+        <p id="gameOverText"></p>
+        <button onclick="restartGame()" class="restart-btn" style="padding: 1rem 2rem; background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 1.2rem; font-weight: 600; margin-top: 1.5rem; transition: all 0.3s ease;">Play Again</button>
+    </div>
+</div>
+
+<script>
+const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
+
+let humanScore = 0;
+let computerScore = 0;
+let humanClicks = 25;
+let computerClicks = 25;
+let completedRows = new Set();
+let completedCols = new Set();
+let isHumanTurn = true;
+
+function getRandomColor() {
+    return colors[Math.floor(Math.random() * colors.length)];
+}
+
+function createTable() {
+    const table = document.getElementById('colorTable');
+    table.innerHTML = '';
+    for (let row = 0; row < 16; row++) {
+        const tr = document.createElement('tr');
+        for (let col = 0; col < 16; col++) {
+            const td = document.createElement('td');
+            td.style.backgroundColor = getRandomColor();
+            td.dataset.row = row;
+            td.dataset.col = col;
+            td.addEventListener('click', () => {
+                if (isHumanTurn && humanClicks > 0) {
+                    handleCellClick(parseInt(td.dataset.row), parseInt(td.dataset.col), td.style.backgroundColor, true);
+                }
+            });
+            tr.appendChild(td);
+        }
+        table.appendChild(tr);
+    }
+}
+
+function handleCellClick(row, col, color, isHuman = false) {
+    if (isHuman && humanClicks <= 0) return;
+    if (!isHuman && computerClicks <= 0) return;
+
+    const scoreElement = isHuman ? 'humanScore' : 'computerScore';
+    const clicksElement = isHuman ? 'humanClicks' : 'computerClicks';
+    const turnIndicator = document.getElementById('turnIndicator');
+
+    if (isHuman) {
+        humanClicks--;
+        document.getElementById('humanClicks').textContent = humanClicks;
+        document.getElementById(scoreElement).classList.add('highlight');
+        setTimeout(() => document.getElementById(scoreElement).classList.remove('highlight'), 1000);
+    } else {
+        computerClicks--;
+        document.getElementById('computerClicks').textContent = computerClicks;
+        document.getElementById(scoreElement).classList.add('highlight');
+        setTimeout(() => document.getElementById(scoreElement).classList.remove('highlight'), 1000);
+    }
+
+    changeAdjacentColorToWhite(row, col, color);
+    checkFullRowOrColumn(isHuman);
+
+    if (humanClicks === 0 && computerClicks === 0) {
+        setTimeout(showGameOver, 500);
+    } else if (isHuman) {
+        isHumanTurn = false;
+        turnIndicator.textContent = "Computer's Turn";
+        turnIndicator.className = 'computer-turn';
+        setTimeout(computerTurn, 800);
+    } else {
+        isHumanTurn = true;
+        turnIndicator.textContent = "Your Turn";
+        turnIndicator.className = 'human-turn';
+    }
+}
+
+function changeAdjacentColorToWhite(row, col, color) {
+    const table = document.getElementById('colorTable');
+    const cells = table.getElementsByTagName('td');
+    const toVisit = [[row, col]];
+    const visited = new Set();
+
+    while (toVisit.length > 0) {
+        const [r, c] = toVisit.shift();
+        const index = r * 16 + c;
+
+        if (visited.has(index) || r < 0 || r >= 16 || c < 0 || c >= 16) continue;
+        visited.add(index);
+
+        const cell = cells[index];
+        if (cell.style.backgroundColor === color) {
+            cell.style.backgroundColor = 'white';
+            cell.style.transform = 'scale(0.95)';
+            cell.style.transition = 'all 0.3s ease';
+            toVisit.push([r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]);
+        }
+    }
+}
+
+function checkFullRowOrColumn(isHuman) {
+    const table = document.getElementById('colorTable');
+    const rows = table.rows;
+    let updated = false;
+
+    for (let row = 0; row < 16; row++) {
+        if (completedRows.has(row)) continue;
+        let isFullWhite = true;
+        for (let col = 0; col < 16; col++) {
+            if (rows[row].cells[col].style.backgroundColor !== 'white') {
+                isFullWhite = false;
+                break;
+            }
+        }
+        if (isFullWhite) {
+            completedRows.add(row);
+            updateScoreAndClicks(isHuman, 10);
+            updated = true;
+            animateCompletedRow(row);
+        }
+    }
+
+    for (let col = 0; col < 16; col++) {
+        if (completedCols.has(col)) continue;
+        let isFullWhite = true;
+        for (let row = 0; row < 16; row++) {
+            if (rows[row].cells[col].style.backgroundColor !== 'white') {
+                isFullWhite = false;
+                break;
+            }
+        }
+        if (isFullWhite) {
+            completedCols.add(col);
+            updateScoreAndClicks(isHuman, 10);
+            updated = true;
+            animateCompletedColumn(col);
+        }
+    }
+    return updated;
+}
+
+function animateCompletedRow(row) {
+    const table = document.getElementById('colorTable');
+    const cells = table.rows[row].cells;
+    for (let i = 0; i < cells.length; i++) {
+        setTimeout(() => {
+            cells[i].style.transform = 'scale(0.9)';
+            cells[i].style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.5)';
+            setTimeout(() => {
+                cells[i].style.transform = 'scale(0.95)';
+                cells[i].style.boxShadow = 'none';
+            }, 300);
+        }, i * 50);
+    }
+}
+
+function animateCompletedColumn(col) {
+    const table = document.getElementById('colorTable');
+    for (let i = 0; i < table.rows.length; i++) {
+        setTimeout(() => {
+            const cell = table.rows[i].cells[col];
+            cell.style.transform = 'scale(0.9)';
+            cell.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.5)';
+            setTimeout(() => {
+                cell.style.transform = 'scale(0.95)';
+                cell.style.boxShadow = 'none';
+            }, 300);
+        }, i * 50);
+    }
+}
+
+function updateScoreAndClicks(isHuman, points) {
+    const scoreElement = isHuman ? 'humanScore' : 'computerScore';
+    const pointsElement = isHuman ? 'humanPoints' : 'computerPoints';
+    const clicksElement = isHuman ? 'humanClicks' : 'computerClicks';
+
+    if (isHuman) {
+        humanScore += points;
+        humanClicks += 10;
+        document.getElementById(pointsElement).textContent = humanScore;
+        document.getElementById(clicksElement).textContent = humanClicks;
+    } else {
+        computerScore += points;
+        computerClicks += 10;
+        document.getElementById(pointsElement).textContent = computerScore;
+        document.getElementById(clicksElement).textContent = computerClicks;
+    }
+
+    const scoreDiv = document.getElementById(scoreElement);
+    scoreDiv.classList.add('celebrating');
+    setTimeout(() => scoreDiv.classList.remove('celebrating'), 500);
+}
+
+function computerTurn() {
+    if (computerClicks <= 0) {
+        isHumanTurn = true;
+        document.getElementById('turnIndicator').textContent = "Your Turn";
+        document.getElementById('turnIndicator').className = 'human-turn';
+        if (humanClicks === 0) setTimeout(showGameOver, 500);
+        return;
+    }
+
+    const table = document.getElementById('colorTable');
+    const rows = table.rows;
+    let bestMove = { row: -1, col: -1, count: -1, color: '' };
+
+    for (let row = 0; row < 16; row++) {
+        for (let col = 0; col < 16; col++) {
+            const cell = rows[row].cells[col];
+            const color = cell.style.backgroundColor;
+            if (color === 'white') continue;
+
+            const count = countAdjacentMatchingCells(row, col, color);
+            if (count > bestMove.count) {
+                bestMove = { row, col, count, color };
+            }
+        }
+    }
+
+    if (bestMove.row !== -1) {
+        const cell = rows[bestMove.row].cells[bestMove.col];
+        cell.classList.add('highlight');
+        setTimeout(() => {
+            cell.classList.remove('highlight');
+            handleCellClick(bestMove.row, bestMove.col, bestMove.color, false);
+        }, 500);
+    } else {
+        isHumanTurn = true;
+        document.getElementById('turnIndicator').textContent = "Your Turn";
+        document.getElementById('turnIndicator').className = 'human-turn';
+        if (humanClicks === 0) setTimeout(showGameOver, 500);
+    }
+}
+
+function countAdjacentMatchingCells(row, col, color) {
+    const table = document.getElementById('colorTable');
+    const cells = table.getElementsByTagName('td');
+    const toVisit = [[row, col]];
+    const visited = new Set();
+    let count = 0;
+
+    while (toVisit.length > 0) {
+        const [r, c] = toVisit.shift();
+        const index = r * 16 + c;
+
+        if (visited.has(index) || r < 0 || r >= 16 || c < 0 || c >= 16) continue;
+        visited.add(index);
+
+        const cell = cells[index];
+        if (cell.style.backgroundColor === color) {
+            count++;
+            toVisit.push([r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]);
+        }
+    }
+    return count;
+}
+
+function showGameOver() {
+    const overlay = document.getElementById('gameOverOverlay');
+    const message = document.getElementById('gameOverMessage');
+    const title = document.getElementById('gameOverTitle');
+    const text = document.getElementById('gameOverText');
+
+    overlay.style.display = 'flex';
+    document.getElementById('restartBtn').style.display = 'block';
+
+    if (humanScore > computerScore) {
+        title.textContent = "🎉 Victory! 🎉";
+        text.innerHTML = `
+            <div style="font-size: 1.2rem; margin: 1rem 0;">
+                <div style="color: #10b981; font-weight: 600;">You won!</div>
+                <div style="margin-top: 1rem;">
+                    <div>Your Score: <span style="font-weight: 600; color: #3b82f6">${humanScore}</span></div>
+                    <div>Computer Score: <span style="font-weight: 600; color: #ef4444">${computerScore}</span></div>
+                </div>
+            </div>
+        `;
+        message.className = 'winner';
+    } else if (computerScore > humanScore) {
+        title.textContent = "Game Over";
+        text.innerHTML = `
+            <div style="font-size: 1.2rem; margin: 1rem 0;">
+                <div style="color: #ef4444; font-weight: 600;">Computer won!</div>
+                <div style="margin-top: 1rem;">
+                    <div>Your Score: <span style="font-weight: 600; color: #3b82f6">${humanScore}</span></div>
+                    <div>Computer Score: <span style="font-weight: 600; color: #ef4444">${computerScore}</span></div>
+                </div>
+            </div>
+        `;
+        message.className = 'loser';
+    } else {
+        title.textContent = "It's a Tie!";
+        text.innerHTML = `
+            <div style="font-size: 1.2rem; margin: 1rem 0;">
+                <div style="color: #8b5cf6; font-weight: 600;">Well played!</div>
+                <div style="margin-top: 1rem;">
+                    <div>Final Score: <span style="font-weight: 600; color: #8b5cf6">${humanScore}</span></div>
+                </div>
+            </div>
+        `;
+        message.className = 'tie';
+    }
+}
+
+function restartGame() {
+    humanScore = 0;
+    computerScore = 0;
+    humanClicks = 25;
+    computerClicks = 25;
+    completedRows.clear();
+    completedCols.clear();
+    isHumanTurn = true;
+
+    document.getElementById('humanPoints').textContent = humanScore;
+    document.getElementById('computerPoints').textContent = computerScore;
+    document.getElementById('humanClicks').textContent = humanClicks;
+    document.getElementById('computerClicks').textContent = computerClicks;
+    document.getElementById('turnIndicator').textContent = "Your Turn";
+    document.getElementById('turnIndicator').className = 'human-turn';
+    document.getElementById('restartBtn').style.display = 'none';
+    document.getElementById('gameOverOverlay').style.display = 'none';
+
+    createTable();
+}
+
+createTable();
+</script>
+
+</body>
+</html>
